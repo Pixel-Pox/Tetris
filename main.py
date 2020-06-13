@@ -78,18 +78,16 @@ class Shape:
 		self.height = len(self.shape)
 		self.width = len(self.shape[0])
 		self.color = self.shape[-1][1]
+		self.changed = False
 
 	def move_left(self):
 		result = True
 		for y in range(self.height):
 			if self.shape[y][0] != 0:
-				if grid[self.y + y][self.x - self.width -1] != 0:
-					return False
-			#elif self.shape[y][0] == 0 and result:
-			#	self.shape[y][0] = grid[self.y + y][self.x]
-				else:
-					if result:
-						self.shape[y][0] = grid[self.y + y][self.x]
+				if grid[self.y + y][self.x - 1] != 0:
+					result = False
+			else:
+				self.shape[y][0] = grid[self.y + y][self.x]
 		if result:
 			self.remove_shape(grid)
 			self.x -= 1
@@ -101,10 +99,8 @@ class Shape:
 			if self.shape[y][-1] != 0:
 				if grid[self.y + y][self.x + self.width] != 0:
 					result = False
-					return result
 			else:
-				if result:
-				#self.shape[y][-1] = grid[self.y + y][self.x + self.width -1]
+				if grid[self.y + y][self.x + self.width] == 0:
 					self.shape[y][-1] = grid[self.y + y][self.x + self.width]
 		if result:
 			self.remove_shape(grid)
@@ -115,7 +111,10 @@ class Shape:
 		for y in range(self.height):
 			for x in range(self.width):
 				if self.shape[y][x] != 0:
-					grid[self.y + y][self.x + x] = self.shape[y][x]
+					try:
+						grid[self.y + y][self.x + x] = self.shape[y][x]
+					except IndexError:
+						return None
 
 	def remove_shape(self, grid):
 		for y in range(self.height):
@@ -126,22 +125,31 @@ class Shape:
 	def can_move(self, grid):
 		result = True
 		for x in range(self.width):
-			if self.shape[-1][x] != 0:
-				if grid[self.y + self.height][self.x + x] != 0:
+			#separetly handling J, L, Z, S pieces
+			if self.height == 3 and self.width > 1 and (self.color == 3 or self.color == 2):
+				if self.shape[2][x] != 0:
+					if grid[self.y + self.height][self.x + x] != 0:
+						result = False
+				elif self.shape[1][x] != 0 and grid[self.y + 2][self.x + x] != 0:
 					result = False
-			else:
-				self.shape[-1][x] = grid[self.y + self.height][self.x + x]
+				elif self.shape[0][x] != 0 and grid[self.y + 1][self.x + x] != 0:
+					result = False
+			elif self.height == 3 and self.width > 1 and (self.color == 7 or self.color == 5):
+				if self.shape[2][x] != 0 and grid[self.y + self.height][self.x + x] != 0:
+						result = False
+				elif self.shape[1][x] != 0 and grid[self.y + 2][self.x + x] != 0 and grid[self.y + 2][self.x + x] != self.color:
+					result = False
+			elif self.shape[self.height - 1][x] != 0 and grid[self.y + self.height][self.x + x] != 0:
+				result = False
 		return result
 
 	def rotate(self):
-		if self.can_move(grid):
-			self.remove_shape(grid)
-			self.shape = numpy.rot90(self.shape)
-			self.height = len(self.shape)
-			self.width = len(self.shape[0])
-			if self.width == 3 and self.x == 8:
-				self.x -= 1
-			self.pass_shape(grid)
+		self.remove_shape(grid)
+		self.shape = numpy.rot90(self.shape)
+		self.height = len(self.shape)
+		self.width = len(self.shape[0])
+		if self.width > 2 and self.x > 7:
+			self.x -= 1
 
 
 # function to draw the game with pieces based off of grid's numbers
@@ -182,7 +190,6 @@ def full_grid(grid):
 # main game loop
 def game():
 	shape = Shape()
-	grid[shape.y][shape.x] = shape.color
 	pygame.init()
 	display = pygame.display.set_mode(dim)
 	display.fill(colors['BLACK'])
