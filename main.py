@@ -6,7 +6,7 @@ import numpy
 import tkinter
 
 # dimensions of the window
-dim = (901, 951)
+dim = (900, 950)
 # size of the square pieces
 sq_dim = 50
 # Main game grid
@@ -51,39 +51,65 @@ class Shape:
 		self.y = 0
 		# shapes with initial dimensions
 		I = [[1, 1, 1, 1]]
+
 		O = [[4,4],
 		     [4,4]]
+
 		T = [[6,6,6],
 		      [0,6,0]]
+
 		J = [[0,2],
 		     [0,2],
 		     [2,2]]
+
 		L = [[3,0],
 		     [3,0],
 		     [3,3]]
+
 		S = [[0,5,5],
 		     [5,5,0]]
+
 		Z = [[7,7,0],
 		     [0,7,7]]
-		shapes = [I,O, T, J, L, S, Z]
+
+		shapes = [I, O, T, J, L, S, Z]
+
 		self.shape = random.choice(shapes)
 		self.height = len(self.shape)
 		self.width = len(self.shape[0])
 		self.color = self.shape[-1][1]
 
 	def move_left(self):
-		if self.x > 0 and grid[self.y][self.x - self.width] == 0 and\
-				grid[self.y + self.height][self.x - self.width] == 0 and self.y < 18 and self.can_move(grid):
+		result = True
+		for y in range(self.height):
+			if self.shape[y][0] != 0:
+				if grid[self.y + y][self.x - self.width -1] != 0:
+					return False
+			#elif self.shape[y][0] == 0 and result:
+			#	self.shape[y][0] = grid[self.y + y][self.x]
+				else:
+					if result:
+						self.shape[y][0] = grid[self.y + y][self.x]
+		if result:
 			self.remove_shape(grid)
 			self.x -= 1
-
+			self.pass_shape(grid)
 
 	def move_right(self):
-		if self.x < (10 - self.width) and grid[self.y][self.x + self.width] == 0 and\
-				grid[self.y + self.height][self.x + self.width] == 0 and self.y < 18 and self.can_move(grid):
+		result = True
+		for y in range(self.height):
+			if self.shape[y][-1] != 0:
+				if grid[self.y + y][self.x + self.width] != 0:
+					result = False
+					return result
+			else:
+				if result:
+				#self.shape[y][-1] = grid[self.y + y][self.x + self.width -1]
+					self.shape[y][-1] = grid[self.y + y][self.x + self.width]
+		if result:
 			self.remove_shape(grid)
 			self.x += 1
-
+			self.pass_shape(grid)
 
 	def pass_shape(self, grid):
 		for y in range(self.height):
@@ -100,19 +126,22 @@ class Shape:
 	def can_move(self, grid):
 		result = True
 		for x in range(self.width):
-			if self.shape[self.height-1][x] != 0:
+			if self.shape[-1][x] != 0:
 				if grid[self.y + self.height][self.x + x] != 0:
 					result = False
+			else:
+				self.shape[-1][x] = grid[self.y + self.height][self.x + x]
 		return result
 
-
 	def rotate(self):
-		self.remove_shape(grid)
-		self.shape = numpy.rot90(self.shape)
-		self.height = len(self.shape)
-		self.width = len(self.shape[0])
-		self.pass_shape(grid)
-		print(self.shape)
+		if self.can_move(grid):
+			self.remove_shape(grid)
+			self.shape = numpy.rot90(self.shape)
+			self.height = len(self.shape)
+			self.width = len(self.shape[0])
+			if self.width == 3 and self.x == 8:
+				self.x -= 1
+			self.pass_shape(grid)
 
 
 # function to draw the game with pieces based off of grid's numbers
@@ -143,6 +172,13 @@ def grid_draw(display):
 	pygame.display.flip()
 
 
+def full_grid(grid):
+	for i in range(len(grid)):
+		if 0 not in grid[i]:
+			del grid[i]
+			grid.insert(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+
 # main game loop
 def game():
 	shape = Shape()
@@ -152,20 +188,23 @@ def game():
 	display.fill(colors['BLACK'])
 	while True:
 		# Sleep for playable experience, otherwise it's way too quick
-		time.sleep(0.2)
+		time.sleep(0.15)
 		# event handler
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				sys.exit()
-			elif event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_LEFT:
+			elif event.type == pygame.KEYDOWN and shape.can_move(grid):
+				if event.key == pygame.K_LEFT and shape.x > 0:
 					shape.move_left()
-				elif event.key == pygame.K_RIGHT:
+					grid_draw(display)
+				elif event.key == pygame.K_RIGHT and shape.x < (10 - shape.width):
 					shape.move_right()
+					grid_draw(display)
 				elif event.key == pygame.K_UP:
 					shape.rotate()
 		# If shape reaches bottom of the screen, stop and create another one
 		if shape.y == 18 - shape.height + 1:
+			full_grid(grid)
 			shape = Shape()
 		# If nothing below current pos, move piece down
 		elif shape.can_move(grid):
@@ -173,13 +212,10 @@ def game():
 			shape.y += 1
 			shape.pass_shape(grid)
 		else:
+			full_grid(grid)
 			shape = Shape()
-		# clear filled lines
-		for i in range(len(grid)):
-			if 0 not in grid[i]:
-				del grid[i]
-				grid.insert(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 		grid_draw(display)
 
 
 game()
+
