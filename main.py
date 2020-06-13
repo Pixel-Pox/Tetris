@@ -111,6 +111,7 @@ class Shape:
 		for y in range(self.height):
 			for x in range(self.width):
 				if self.shape[y][x] != 0:
+					#error handler to prevent crashing on rotoation near other blocks
 					try:
 						grid[self.y + y][self.x + x] = self.shape[y][x]
 					except IndexError:
@@ -125,7 +126,7 @@ class Shape:
 	def can_move(self, grid):
 		result = True
 		for x in range(self.width):
-			#separetly handling J, L, Z, S pieces
+			#separetly handling J, L, Z, S, T pieces. UGH I'm sure there's a better way...
 			if self.height == 3 and self.width > 1 and (self.color == 3 or self.color == 2):
 				if self.shape[2][x] != 0:
 					if grid[self.y + self.height][self.x + x] != 0:
@@ -134,13 +135,17 @@ class Shape:
 					result = False
 				elif self.shape[0][x] != 0 and grid[self.y + 1][self.x + x] != 0:
 					result = False
-			elif self.height == 3 and self.width > 1 and (self.color == 7 or self.color == 5):
+			elif self.height == 3 and self.width > 1 and (self.color == 7 or self.color == 5 or self.color == 6):
 				if self.shape[2][x] != 0 and grid[self.y + self.height][self.x + x] != 0:
-						result = False
+					result = False
 				elif self.shape[1][x] != 0 and grid[self.y + 2][self.x + x] != 0 and grid[self.y + 2][self.x + x] != self.color:
 					result = False
-			elif self.shape[self.height - 1][x] != 0 and grid[self.y + self.height][self.x + x] != 0:
-				result = False
+			elif self.shape[-1][x] != 0:
+				if grid[self.y + self.height][self.x + x] != 0:
+					result = False
+			elif self.shape[0][x] != 0:
+				if grid[self.y + 1][self.x + x] != 0:
+					result = False
 		return result
 
 	def rotate(self):
@@ -150,6 +155,7 @@ class Shape:
 		self.width = len(self.shape[0])
 		if self.width > 2 and self.x > 7:
 			self.x -= 1
+		self.pass_shape(grid)
 
 
 # function to draw the game with pieces based off of grid's numbers
